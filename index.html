@@ -30,6 +30,7 @@ const liveRef = ref(database, "latheData/1");
 
 let temperature = 0;
 let vibration = 0;
+let runtime = 0;
 
 onValue(liveRef, (snapshot) => {
     const data = snapshot.val();
@@ -37,9 +38,11 @@ onValue(liveRef, (snapshot) => {
 
     temperature = parseFloat(data.temperature ?? 0);
     vibration = parseFloat(data.vibration ?? 0);
+    runtime = parseFloat(data.runtime_seconds ?? 0);
 
     document.getElementById("temp").innerText = temperature.toFixed(1);
     document.getElementById("vib").innerText = vibration.toFixed(2);
+    document.getElementById("runtime").innerText = runtime;
 
     updateStatus();
     updateModelColor();
@@ -48,11 +51,11 @@ onValue(liveRef, (snapshot) => {
 function updateStatus() {
     const status = document.getElementById("status");
 
-    if (temperature > 85 || vibration > 1.8) {
+    if (temperature > 85 || vibration > 1.8 || runtime > 5000) {
         status.innerText = "CRITICAL";
         status.style.background = "#ef4444";
     }
-    else if (temperature > 65 || vibration > 1.0) {
+    else if (temperature > 65 || vibration > 1.0 || runtime > 3000) {
         status.innerText = "WARNING";
         status.style.background = "#eab308";
     }
@@ -77,7 +80,6 @@ function updateModelColor() {
 <style>
 body { margin:0; overflow:hidden; font-family:Arial; }
 
-/* Mobile Friendly Dashboard */
 #dashboard {
   position:absolute;
   top:10px;
@@ -224,6 +226,7 @@ AFRAME.registerComponent('model-zoom', {
   <h3>Mini Lathe - Live</h3>
   <p>Temperature: <b><span id="temp">--</span> °C</b></p>
   <p>Vibration: <b><span id="vib">--</span> g</b></p>
+  <p>Runtime: <b><span id="runtime">--</span> sec</b></p>
   <div id="status" class="status">NORMAL</div>
 </div>
 
