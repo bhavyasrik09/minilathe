@@ -26,7 +26,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
-const liveRef = ref(database, "latheData/1");
+const liveRef = ref(database, "raw/live");
 
 let temperature = 0;
 let vibration = 0;
