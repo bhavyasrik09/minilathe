@@ -66,11 +66,10 @@ function updateStatus() {
 }
 </script>
 
-<!-- ================= MOBILE UI STYLE ================= -->
+<!-- ================= MOBILE UI ================= -->
 <style>
 body { margin:0; overflow:hidden; font-family:Arial; }
 
-/* Dashboard */
 #dashboard {
   position:absolute;
   top:10px;
@@ -106,7 +105,6 @@ body { margin:0; overflow:hidden; font-family:Arial; }
   border-radius:6px;
 }
 
-/* Loader */
 #loader {
   position:absolute;
   top:50%;
@@ -122,7 +120,8 @@ body { margin:0; overflow:hidden; font-family:Arial; }
 
 <!-- ================= AFRAME COMPONENTS ================= -->
 <script>
-// Play all animations
+
+// Loader + animations
 AFRAME.registerComponent('play-all-animations', {
   init: function () {
     this.el.addEventListener('model-loaded', () => {
@@ -141,24 +140,27 @@ AFRAME.registerComponent('play-all-animations', {
   }
 });
 
-// Touch rotate
+// One-finger rotate
 AFRAME.registerComponent('drag-rotate', {
   init: function () {
-    this.isDragging = false;
+    this.dragging = false;
     this.lastX = 0;
     const scene = this.el.sceneEl;
 
     scene.addEventListener('touchstart', e => {
-      this.isDragging = true;
-      this.lastX = e.touches[0].clientX;
+      if (e.touches.length === 1) {
+        this.dragging = true;
+        this.lastX = e.touches[0].clientX;
+      }
     });
 
     scene.addEventListener('touchend', () => {
-      this.isDragging = false;
+      this.dragging = false;
     });
 
     scene.addEventListener('touchmove', e => {
-      if (!this.isDragging) return;
+      if (!this.dragging || e.touches.length !== 1) return;
+
       const dx = (e.touches[0].clientX - this.lastX) * 0.01;
       this.el.object3D.rotation.y += dx;
       this.lastX = e.touches[0].clientX;
@@ -166,45 +168,50 @@ AFRAME.registerComponent('drag-rotate', {
   }
 });
 
-// Pinch zoom
+// Two-finger pinch zoom (FIXED)
 AFRAME.registerComponent('model-zoom', {
   init: function () {
     this.scale = 0.8;
-    this.initialDistance = null;
+    this.startDistance = 0;
+    const el = this.el;
     const scene = this.el.sceneEl;
 
-    scene.addEventListener('touchmove', e => {
-      if (e.touches.length !== 2) return;
-
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const distance = Math.sqrt(dx*dx + dy*dy);
-
-      if (!this.initialDistance) {
-        this.initialDistance = distance;
-      } else {
-        const diff = distance - this.initialDistance;
-        this.scale += diff * 0.0005;
-        this.scale = Math.max(0.3, Math.min(2.5, this.scale));
-        this.el.setAttribute('scale', `${this.scale} ${this.scale} ${this.scale}`);
-        this.initialDistance = distance;
+    scene.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        this.startDistance = getDistance(e.touches[0], e.touches[1]);
       }
     });
 
-    scene.addEventListener('touchend', () => {
-      this.initialDistance = null;
-    });
+    scene.addEventListener('touchmove', (e) => {
+      if (e.touches.length !== 2) return;
+
+      e.preventDefault();
+
+      const newDistance = getDistance(e.touches[0], e.touches[1]);
+      const diff = newDistance - this.startDistance;
+
+      this.scale += diff * 0.0015;   // sensitivity
+      this.scale = Math.max(0.3, Math.min(2.5, this.scale));
+
+      el.setAttribute('scale', `${this.scale} ${this.scale} ${this.scale}`);
+      this.startDistance = newDistance;
+    }, { passive:false });
+
+    function getDistance(p1, p2) {
+      const dx = p1.clientX - p2.clientX;
+      const dy = p1.clientY - p2.clientY;
+      return Math.sqrt(dx*dx + dy*dy);
+    }
   }
 });
 </script>
+
 </head>
 
 <body>
 
-<!-- Loader -->
 <div id="loader">Loading Model...</div>
 
-<!-- Dashboard -->
 <div id="dashboard">
   <h3>Mini Lathe - Live</h3>
 
@@ -226,7 +233,6 @@ AFRAME.registerComponent('model-zoom', {
   <div id="status" class="status">NORMAL</div>
 </div>
 
-<!-- AR Scene -->
 <a-scene
   embedded
   vr-mode-ui="enabled:false"
@@ -238,7 +244,7 @@ AFRAME.registerComponent('model-zoom', {
     gltf-model="desk_lathe_animated.glb"
     play-all-animations
     position="0 0 -4"
-    scale="0.8 0.8 0.8"
+    scale="0.6 0.6 0.6"
     drag-rotate
     model-zoom>
   </a-entity>
